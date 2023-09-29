@@ -1,3 +1,76 @@
+create or replace package pck_etl is
+
+    cursor cursor_dim_cliente is
+        select nome_cliente, sexo, (select to_char(sysdate, 'YYYY') from dual) - substr(data_nasc, 7, 9) as idade
+        from cliente;
+
+    cursor cursor_dim_data is
+        select to_char(current_date, 'dd') as dia_atual, to_char(current_date, 'MM') as mes_atual, to_char(current_date, 'yyyy') as ano_atual
+        from dual;
+
+    cursor cursor_dim_local is
+        select loja.nome_loja, loja.codigo_loja, endereco.bairro, endereco.cidade, endereco.estado
+        from endereco_loja
+        inner join loja
+            on endereco_loja.codigo_loja = loja.codigo_loja
+        inner join endereco
+            on endereco_loja.endereco_cep = endereco.cep;
+
+    cursor cursor_dim_produto is
+        select produto.codigo_produto, produto.nome_prod, fabricante.nome_fabricante, produto.tipo, produto.genero
+        from produto
+        inner join fabricante
+            on produto.codigo_fabricante = fabricante.codigo_fabricante;
+
+    cursor cursor_dim_vendedor is
+        select funcionario.codigo_funcionario, funcionario.nome_funcionario, funcionario.codigo_gerente, gerentes.nome_gerente
+        from funcionario
+        inner join (
+            select codigo_funcionario, nome_funcionario as nome_gerente
+            from funcionario
+        ) gerentes 
+            on funcionario.codigo_gerente = gerentes.codigo_funcionario;
+
+    cursor cursor_fato_venda is
+        select 
+            dimensao_cliente.surrogate_cliente, 
+            dimensao_vendedor.surrogate_vendedor, 
+            dimensao_local.surrogate_loja,
+            dimensao_data.surrogate_data,
+            dimensao_produto.surrogate_produto,
+            round((item_nf.quantidade * produto.preco_venda), 2) as valor_venda,
+            round(item_nf.quantidade) as quantidade
+        from nota_fiscal
+        inner join cliente
+            on cliente.codigo_cliente = nota_fiscal.codigo_cliente
+            inner join dimensao_cliente
+                on dimensao_cliente.nome_cliente = cliente.nome_cliente
+                and dimensao_cliente.sexo_cliente = cliente.sexo 
+                and dimensao_cliente.idade_cliente = (select to_char(sysdate, 'YYYY') from dual) - substr(cliente.data_nasc, 7, 9)
+        inner join dimensao_vendedor
+            on dimensao_vendedor.codigo_vendedor = nota_fiscal.codigo_vendedor
+        inner join dimensao_local
+            on dimensao_local.codigo_loja = nota_fiscal.codigo_loja
+        inner join dimensao_data
+            on dimensao_data.dia = to_char(nota_fiscal.data_nf, 'dd')
+            and dimensao_data.mes = to_char(nota_fiscal.data_nf, 'MM')
+            and dimensao_data.ano = to_char(nota_fiscal.data_nf, 'yyyy')
+        inner join item_nf
+            on item_nf.codigo_nf = nota_fiscal.codigo_nf
+            inner join dimensao_produto
+                on dimensao_produto.codigo_produto = item_nf.codigo_produto
+            inner join produto
+                on produto.codigo_produto = item_nf.codigo_produto;
+
+    procedure proc_insert_dim_cliente;
+    procedure proc_insert_dim_data;
+    procedure proc_insert_dim_local;
+    procedure proc_insert_dim_produto;
+    procedure proc_insert_dim_vendedor;
+    procedure proc_insert_fato_venda;
+
+end pck_etl;
+
 create or replace package body pck_etl is
 
     procedure proc_insert_dim_cliente as
