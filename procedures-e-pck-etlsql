@@ -1,0 +1,94 @@
+create or replace package body pck_etl is
+
+    procedure proc_insert_dim_cliente as
+    begin
+
+        for linha in cursor_dim_cliente loop
+            insert into dimensao_cliente values (
+                seq_dim_cliente.nextval, 
+                linha.nome_cliente, linha.sexo, 
+                linha.idade
+            );
+        end loop;
+
+    end proc_insert_dim_cliente;
+
+    procedure proc_insert_dim_data as
+    begin
+
+        for linha in cursor_dim_data loop
+            insert into dimensao_data values (
+                seq_dim_data.nextval, 
+                linha.dia_atual, 
+                linha.mes_atual, 
+                linha.ano_atual
+            );
+        end loop;
+
+    end proc_insert_dim_data;
+
+    procedure proc_insert_dim_local as
+    begin
+
+        for linha in cursor_dim_local loop
+            insert into dimensao_local values (
+                seq_dim_local.nextval, 
+                linha.nome_loja, 
+                linha.codigo_loja, 
+                linha.bairro, 
+                linha.cidade, 
+                linha.estado
+            );
+        end loop;
+
+    end proc_insert_dim_local;
+
+    procedure proc_insert_dim_produto as
+    begin
+
+        for linha in cursor_dim_produto loop
+            insert into dimensao_produto values (
+                seq_dim_produto.nextval, 
+                linha.codigo_produto, 
+                linha.nome_prod, 
+                linha.nome_fabricante, 
+                linha.tipo, 
+                linha.genero
+            );
+        end loop;
+
+    end proc_insert_dim_produto;
+
+    procedure proc_insert_dim_vendedor as
+    begin
+
+        for linha in cursor_dim_vendedor loop
+            insert into dimensao_vendedor values (
+                seq_dim_vendedor.nextval, 
+                linha.codigo_funcionario, 
+                linha.nome_funcionario, 
+                linha.codigo_gerente, 
+                linha.nome_gerente
+            );
+        end loop;
+
+    end proc_insert_dim_vendedor;
+
+    procedure proc_insert_fato_venda as
+    begin
+
+        for linha in cursor_fato_venda loop
+            insert into fato_venda values (
+                linha.surrogate_loja,
+                linha.surrogate_produto,
+                linha.surrogate_data,
+                linha.surrogate_cliente,
+                linha.surrogate_vendedor,
+                linha.valor_venda,
+                linha.quantidade
+            );
+        end loop;
+
+    end proc_insert_fato_venda;
+
+end pck_etl;
